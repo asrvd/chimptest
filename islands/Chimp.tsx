@@ -1,36 +1,37 @@
 /** @jsx h */
 import { h } from "preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { IS_BROWSER } from "$fresh/runtime.ts";
 import { tw } from "@twind";
 import Button from "../components/Button.tsx";
 import confetti from "confetti";
 import { createBoard } from "../lib/createBoard.ts";
-
-type Colors = {
-  [key: number]: string;
-};
+import type { Colors, Difficulty } from "../utils/types.ts";
+import { gameMode } from "../utils/constants.ts";
 
 export default function Chimp() {
-  const [gameBoard, setGameBoard] = useState<number[][]>(createBoard());
-  const [buttonColors, setButtonColors] = useState<Colors>({
-    1: "",
-    2: "",
-    3: "",
-    4: "",
-    5: "",
-    6: "",
-    7: "",
-    8: "",
-  });
+  const [difficulty, setDifficulty] = useState<"easy" | "expert" | "insane">(
+    "easy"
+  );
   const [clickedValues, setClickedValues] = useState<number[]>([]);
   const [gameOver, setGameOver] = useState<boolean>(false);
-  const [showableValues, setShowableValues] = useState<number[]>([
-    1, 2, 3, 4, 5, 6, 7, 8,
-  ]);
+  const [showableValues, setShowableValues] = useState<number[]>(
+    gameMode[difficulty].values
+  );
+  const [gameBoard, setGameBoard] = useState<number[][]>(
+    createBoard(
+      difficulty,
+      gameMode[difficulty].values.length,
+      gameMode[difficulty].values
+    )
+  );
+  const [buttonColors, setButtonColors] = useState<Colors>(
+    gameMode[difficulty].colors
+  );
   const [move, setMove] = useState<number>(1);
+
   function checkForWin() {
-    if (clickedValues.length === 7) {
+    if (clickedValues.length === gameMode[difficulty].values.length - 1) {
       confetti({
         angle: 60,
         spread: 55,
@@ -44,6 +45,7 @@ export default function Chimp() {
       setTimeout(() => alert("you won the game!"), 1000);
     }
   }
+
   function handleGame(val: number) {
     if (move === 1) {
       if (val === 1) {
@@ -56,13 +58,13 @@ export default function Chimp() {
         });
         setShowableValues([1]);
       } else {
-        setShowableValues([1, 2, 3, 4, 5, 6, 7, 8]);
+        setShowableValues(gameMode[difficulty].values);
         setMove(1);
         setTimeout(() => alert("please click on 1 first!"), 1000);
       }
     } else if (move > 0 && move !== 1) {
       if (val == 0) {
-        setShowableValues([1, 2, 3, 4, 5, 6, 7, 8]);
+        setShowableValues(gameMode[difficulty].values);
         setClickedValues((prevState) => [...prevState, val]);
         setButtonColors((prevState) => {
           return {
@@ -83,7 +85,7 @@ export default function Chimp() {
           });
           checkForWin();
         } else {
-          setShowableValues([1, 2, 3, 4, 5, 6, 7, 8]);
+          setShowableValues(gameMode[difficulty].values);
           setClickedValues((prevState) => [...prevState, val]);
           setButtonColors((prevState) => {
             return {
@@ -97,50 +99,56 @@ export default function Chimp() {
       }
     }
   }
+
   function handleClick(val: number) {
     setMove((prevState) => prevState + 1);
     setShowableValues((prevState) => [...prevState, val]);
     handleGame(val);
     return null;
   }
+
   function reset() {
     setClickedValues([]);
-    setShowableValues([1, 2, 3, 4, 5, 6, 7, 8]);
+    setShowableValues(gameMode[difficulty].values);
     setMove(1);
-    setButtonColors({
-      1: "",
-      2: "",
-      3: "",
-      4: "",
-      5: "",
-      6: "",
-      7: "",
-      8: "",
-    });
+    setButtonColors(gameMode[difficulty].colors);
     setGameOver(false);
   }
-  function newGame() {
-    setGameBoard(createBoard());
+
+  function changeMode(mode: Difficulty) {
+    setDifficulty(mode);
+    setGameBoard(
+      createBoard(mode, gameMode[mode].values.length, gameMode[mode].values)
+    );
     setClickedValues([]);
-    setShowableValues([1, 2, 3, 4, 5, 6, 7, 8]);
+    setShowableValues(gameMode[mode].values);
     setMove(1);
-    setButtonColors({
-      1: "",
-      2: "",
-      3: "",
-      4: "",
-      5: "",
-      6: "",
-      7: "",
-      8: "",
-    });
+    setButtonColors(gameMode[mode].colors);
     setGameOver(false);
   }
+
+  function newGame() {
+    setGameBoard(
+      createBoard(
+        difficulty,
+        gameMode[difficulty].values.length,
+        gameMode[difficulty].values
+      )
+    );
+    reset();
+  }
+
   return (
     <div
-      class={tw`w-[80%] md:w-1/4 flex flex-col justify-center items-center gap-6`}
+      class={tw`w-[90%] md:w-1/3 lg:w-1/4 flex flex-col justify-center items-center gap-6`}
     >
-      <div class={tw`grid grid-rows-4 grid-cols-4 gap-4 w-full h-full`}>
+      <div
+        class={tw`grid gap-4 w-full h-full`}
+        style={{
+          gridTemplateColumns: `repeat(${gameMode[difficulty].cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${gameMode[difficulty].rows}, minmax(0, 1fr))`,
+        }}
+      >
         {gameBoard.map((row, rowIndex) =>
           row.map((cell, cellIndex) => (
             <div
@@ -166,6 +174,17 @@ export default function Chimp() {
       <div class={tw`flex w-full gap-4`}>
         <Button onClick={reset}>Reset</Button>
         <Button onClick={newGame}>New Game</Button>
+        <select
+          placeholder="Difficulty"
+          class={tw`px-2 ease-in-out duration-300 py-2 border(gray-500 2) hover:bg-gray-600 bg-gray-700 rounded shadow-md hover:shadow-2xl hover:ring-2 ring-blue-400 w-full hover:-translate-y-0.5 focus:outline-none text-gray-200`}
+          onChange={(event) =>
+            changeMode(event.currentTarget.value as Difficulty)
+          }
+        >
+          <option value="easy">Easy</option>
+          <option value="expert">Expert</option>
+          <option value="insane">Insane</option>
+        </select>
       </div>
     </div>
   );
