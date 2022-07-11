@@ -32,6 +32,7 @@ export default function Chimp() {
 
   function checkForWin() {
     if (clickedValues.length === gameMode[difficulty].values.length - 1) {
+      setGameOver(true)
       confetti({
         angle: 60,
         spread: 55,
