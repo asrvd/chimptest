@@ -12,7 +12,7 @@ export default function Footer() {
         made with {`<3`} by{" "}
         <strong>
           <a
-            href="https://github.com/asheeeshh"
+            href="https://github.com/asrvd"
             target="_blank"
             class="text-underline underline text-gray-200"
             style={{ textDecoration: "underline" }}
